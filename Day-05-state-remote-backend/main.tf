@@ -10,6 +10,15 @@ resource "aws_instance" "name" {
   }
 }
 
+resource "aws_s3_bucket" "name" {
+  bucket = "niltech1010101010"
+  tags = {
+    Name = "MyBucket"
+    env  = "dev"
+    team = "devops"
+  }
+}
+
 
 
 
