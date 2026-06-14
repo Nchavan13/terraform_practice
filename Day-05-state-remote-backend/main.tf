@@ -10,16 +10,8 @@ resource "aws_instance" "name" {
   }
 }
 
-resource "aws_s3_bucket" "name" {
-  bucket = "niltech1010101010"
-  tags = {
-    Name = "MyBucket"
-    env  = "dev"
-    team = "devops"
-  }
-}
 
-
+#First run day5 s3 dynaomic backend code to create s3 bucket and dynamodb table for state management
 
 
 #terraform plan -var-file=dev.tfvars
