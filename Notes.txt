@@ -321,3 +321,795 @@ More questions to prepare (short prompts)
 This section covers common senior-level topics and concise answers; tailor examples to your cloud provider and past projects during interviews.
 
 
+
+
+-----------------------------------------------------------------------------------------------------------------------------------
+
+# Terraform Interview Notes (Basic → Advanced)
+
+## 1. What is Terraform?
+
+Terraform is an Infrastructure as Code (IaC) tool developed by [HashiCorp](https://www.hashicorp.com?utm_source=chatgpt.com) that allows you to define, provision, and manage infrastructure using code.
+
+### Benefits
+
+* Infrastructure as Code
+* Multi-cloud support (AWS, GCP, Azure)
+* Version controlled infrastructure
+* Reusable modules
+* Automated provisioning
+
+---
+
+# 2. Terraform Architecture
+
+```text
+Terraform Configuration (.tf files)
+            ↓
+     Terraform Core
+            ↓
+        Providers
+            ↓
+ Cloud Resources
+```
+
+### Components
+
+#### Terraform Core
+
+* Reads configuration files
+* Creates execution plan
+* Maintains state file
+
+#### Provider
+
+Plugin that interacts with APIs.
+
+Examples:
+
+* AWS Provider
+* GCP Provider
+* Azure Provider
+* Kubernetes Provider
+
+Example:
+
+```hcl
+provider "aws" {
+  region = "ap-south-1"
+}
+```
+
+---
+
+# 3. Terraform Workflow
+
+```text
+terraform init
+terraform fmt
+terraform validate
+terraform plan
+terraform apply
+terraform destroy
+```
+
+### terraform init
+
+Downloads providers and initializes backend.
+
+### terraform validate
+
+Validates syntax.
+
+### terraform fmt
+
+Formats code.
+
+### terraform plan
+
+Shows what Terraform will create/update/delete.
+
+### terraform apply
+
+Creates resources.
+
+### terraform destroy
+
+Deletes resources.
+
+---
+
+# 4. Terraform Configuration Structure
+
+```text
+project/
+│
+├── main.tf
+├── variables.tf
+├── outputs.tf
+├── terraform.tfvars
+├── providers.tf
+└── versions.tf
+```
+
+---
+
+# 5. Resource Block
+
+```hcl
+resource "aws_instance" "web" {
+  ami           = "ami-12345"
+  instance_type = "t3.micro"
+}
+```
+
+### Syntax
+
+```hcl
+resource "<type>" "<name>" {
+}
+```
+
+---
+
+# 6. Variables
+
+## Input Variables
+
+```hcl
+variable "instance_type" {
+  type = string
+}
+```
+
+Use:
+
+```hcl
+instance_type = var.instance_type
+```
+
+### Variable Types
+
+```hcl
+string
+number
+bool
+list
+set
+map
+object
+tuple
+```
+
+Example:
+
+```hcl
+variable "ports" {
+  type = list(number)
+}
+```
+
+---
+
+# 7. Variable Precedence
+
+Highest Priority:
+
+```text
+1. CLI -var
+2. CLI -var-file
+3. terraform.tfvars
+4. *.auto.tfvars
+5. Environment Variables (TF_VAR_)
+6. Default value in variable block
+```
+
+Interview Question:
+Which value will Terraform use if same variable exists in multiple places?
+
+Answer:
+Terraform follows variable precedence. Highest priority wins.
+
+---
+
+# 8. Output Values
+
+```hcl
+output "instance_ip" {
+  value = aws_instance.web.public_ip
+}
+```
+
+View:
+
+```bash
+terraform output
+```
+
+---
+
+# 9. Local Values
+
+```hcl
+locals {
+  env = "dev"
+}
+```
+
+Use:
+
+```hcl
+local.env
+```
+
+Benefits:
+
+* Reduce repetition
+* Improve readability
+
+---
+
+# 10. Data Sources
+
+Used to fetch existing resources.
+
+```hcl
+data "aws_ami" "latest" {
+  most_recent = true
+}
+```
+
+Difference:
+
+Resource = Create
+
+Data Source = Read Existing
+
+---
+
+# 11. Terraform State
+
+Terraform stores resource mapping in:
+
+```text
+terraform.tfstate
+```
+
+Purpose:
+
+* Tracks infrastructure
+* Maps resource to real cloud resource
+
+Commands:
+
+```bash
+terraform state list
+terraform state show
+terraform state rm
+terraform state mv
+```
+
+Interview:
+What happens if state file is deleted?
+
+Answer:
+Terraform loses tracking and may recreate resources.
+
+---
+
+# 12. Remote State
+
+Store state remotely.
+
+AWS Example:
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket = "tf-state"
+    key    = "dev.tfstate"
+    region = "ap-south-1"
+  }
+}
+```
+
+Benefits:
+
+* Team collaboration
+* Backup
+* Security
+
+---
+
+# 13. State Locking
+
+Prevents concurrent updates.
+
+AWS:
+
+```text
+S3 + DynamoDB
+```
+
+Interview:
+Why use state locking?
+
+Answer:
+Prevents corruption when multiple users run apply simultaneously.
+
+---
+
+# 14. Terraform Commands
+
+```bash
+terraform init
+terraform validate
+terraform fmt
+terraform plan
+terraform apply
+terraform destroy
+terraform show
+terraform output
+terraform refresh
+terraform taint
+terraform import
+```
+
+---
+
+# 15. Terraform Import
+
+Import existing resources.
+
+```bash
+terraform import aws_instance.web i-123456
+```
+
+Interview:
+Does import generate code?
+
+Answer:
+No. Import only updates state.
+
+---
+
+# 16. Lifecycle Meta Arguments
+
+```hcl
+lifecycle {
+  create_before_destroy = true
+}
+```
+
+Options:
+
+```text
+create_before_destroy
+prevent_destroy
+ignore_changes
+replace_triggered_by
+```
+
+Example:
+
+```hcl
+ignore_changes = [tags]
+```
+
+---
+
+# 17. Count
+
+```hcl
+resource "aws_instance" "web" {
+  count = 3
+}
+```
+
+Access:
+
+```hcl
+aws_instance.web[0]
+```
+
+---
+
+# 18. for_each
+
+```hcl
+for_each = toset(["dev","qa","prod"])
+```
+
+Access:
+
+```hcl
+each.key
+```
+
+Interview:
+Count vs for_each?
+
+Count:
+
+* Index based
+
+for_each:
+
+* Key based
+* Safer
+
+---
+
+# 19. Dynamic Blocks
+
+```hcl
+dynamic "ingress" {
+  for_each = var.ports
+
+  content {
+    from_port = ingress.value
+    to_port   = ingress.value
+  }
+}
+```
+
+---
+
+# 20. Functions
+
+Examples:
+
+```hcl
+length()
+upper()
+lower()
+lookup()
+merge()
+join()
+split()
+substr()
+format()
+contains()
+```
+
+---
+
+# 21. Conditional Expressions
+
+```hcl
+instance_type = var.env == "prod" ? "t3.large" : "t3.micro"
+```
+
+---
+
+# 22. Modules
+
+Reusable Terraform code.
+
+Structure:
+
+```text
+modules/
+└── ec2
+```
+
+Call:
+
+```hcl
+module "ec2" {
+  source = "./modules/ec2"
+}
+```
+
+Benefits:
+
+* Reusability
+* Standardization
+* Maintainability
+
+---
+
+# 23. Module Types
+
+### Local Module
+
+```hcl
+source = "./modules/ec2"
+```
+
+### Git Module
+
+```hcl
+source = "git::https://github.com/org/module.git"
+```
+
+### Registry Module
+
+```hcl
+source = "terraform-aws-modules/vpc/aws"
+```
+
+---
+
+# 24. Provisioners
+
+### Local Exec
+
+```hcl
+provisioner "local-exec" {
+  command = "echo Hello"
+}
+```
+
+### Remote Exec
+
+```hcl
+provisioner "remote-exec" {
+}
+```
+
+Interview:
+Should we use provisioners?
+
+Answer:
+Avoid if possible. Use cloud-init/user_data instead.
+
+---
+
+# 25. Dependency
+
+Implicit:
+
+```hcl
+vpc_id = aws_vpc.main.id
+```
+
+Explicit:
+
+```hcl
+depends_on = [aws_vpc.main]
+```
+
+---
+
+# 26. Workspaces
+
+```bash
+terraform workspace new dev
+terraform workspace new prod
+terraform workspace list
+terraform workspace select dev
+```
+
+Use Case:
+Manage multiple environments.
+
+---
+
+# 27. Terraform Cloud
+
+Features:
+
+* Remote execution
+* State management
+* Policy enforcement
+* Team collaboration
+
+---
+
+# 28. Drift Detection
+
+Scenario:
+
+```text
+Terraform created EC2
+User manually deleted EC2
+```
+
+Next:
+
+```bash
+terraform plan
+```
+
+Terraform detects drift and recreates resource.
+
+---
+
+# 29. Taint and Replace
+
+Old:
+
+```bash
+terraform taint aws_instance.web
+```
+
+Modern:
+
+```bash
+terraform apply -replace=aws_instance.web
+```
+
+---
+
+# 30. Sensitive Variables
+
+```hcl
+variable "db_password" {
+  sensitive = true
+}
+```
+
+---
+
+# 31. Terraform Interview Scenarios
+
+### Scenario 1
+
+EC2 manually deleted from AWS.
+
+Answer:
+Terraform detects drift during plan and recreates.
+
+---
+
+### Scenario 2
+
+Two engineers run apply simultaneously.
+
+Answer:
+Use remote backend with state locking.
+
+---
+
+### Scenario 3
+
+Need same code for Dev QA Prod.
+
+Answer:
+Use modules + workspaces or separate tfvars.
+
+---
+
+### Scenario 4
+
+Need existing VPC.
+
+Answer:
+Use data source.
+
+---
+
+### Scenario 5
+
+Need 50 EC2 instances.
+
+Answer:
+Use count or for_each.
+
+---
+
+# Top 30 Interview Questions
+
+### What is Terraform?
+
+Infrastructure as Code tool.
+
+### What is Terraform State?
+
+Mapping between configuration and real resources.
+
+### What is Provider?
+
+Plugin used to communicate with cloud APIs.
+
+### What is Module?
+
+Reusable Terraform code.
+
+### Count vs for_each?
+
+Count = Index based.
+for_each = Key based.
+
+### Local vs Variable?
+
+Local = Internal value.
+Variable = External input.
+
+### Resource vs Data Source?
+
+Resource creates.
+Data source reads existing.
+
+### What is Drift?
+
+Infrastructure changed outside Terraform.
+
+### What is State Locking?
+
+Prevents concurrent updates.
+
+### What is Backend?
+
+Storage location for state file.
+
+### Why S3 Backend?
+
+Remote storage.
+
+### Why DynamoDB?
+
+State locking.
+
+### What is terraform plan?
+
+Preview of changes.
+
+### What is terraform apply?
+
+Execute changes.
+
+### What is terraform destroy?
+
+Delete resources.
+
+### What is terraform import?
+
+Bring existing resources into state.
+
+### What is depends_on?
+
+Explicit dependency.
+
+### What is lifecycle block?
+
+Controls resource behavior.
+
+### What is create_before_destroy?
+
+Creates new resource before deleting old one.
+
+### What is prevent_destroy?
+
+Prevents accidental deletion.
+
+### What is ignore_changes?
+
+Ignore selected attribute changes.
+
+### What is Terraform Workspace?
+
+Multiple environments using same configuration.
+
+### What is tfvars?
+
+Stores variable values.
+
+### What is Remote Backend?
+
+State stored remotely.
+
+### How does Terraform handle dependency?
+
+Dependency graph.
+
+### What is HCL?
+
+HashiCorp Configuration Language.
+
+### Why use Modules?
+
+Reusability and standardization.
+
+### Why avoid Provisioners?
+
+Not idempotent and harder to maintain.
+
+### How do you secure secrets?
+
+Sensitive variables + secret managers.
+
+### Difference between Terraform and CloudFormation?
+
+Terraform is multi-cloud, CloudFormation is AWS-specific.
