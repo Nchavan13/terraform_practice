@@ -1,0 +1,323 @@
+Terraform Notes — Basics to Advanced
+===================================
+
+1) What is Terraform?
+- Infrastructure as Code (IaC) tool by HashiCorp.
+- Declarative language (HCL) to provision cloud and on-prem resources.
+- Maintains state and computes an execution plan before applying changes.
+
+2) Key concepts
+- Provider: Plugin for a platform (AWS, Azure, GCP, etc.).
+- Resource: A managed object (e.g., aws_instance).
+- Data source: Read-only information from providers.
+- Module: Reusable collection of resources and configuration.
+- State: Snapshot of managed resources stored locally or remotely.
+- Plan: Diff between desired config and current state.
+
+3) Basic CLI workflow
+- `terraform init` — initialize working directory, download providers/modules.
+- `terraform validate` — check config syntax and provider compatibility.
+- `terraform plan` — preview changes; use `-out=plan.tfplan` to save.
+- `terraform apply` — apply changes; `terraform apply plan.tfplan` to apply saved plan.
+- `terraform destroy` — remove managed infrastructure.
+- `terraform fmt` — format HCL files consistently.
+
+4) HCL basics
+- Blocks: `provider`, `resource`, `variable`, `output`, `module`, `data`.
+- Arguments: key = value pairs inside blocks.
+- Expressions: Interpolate values with `${}` (modern HCL supports direct expressions).
+- Types: string, number, bool, list, map, object, any.
+
+5) Variables & outputs
+- `variable` block: default values, type constraints, descriptions.
+- Pass values via `-var`, `-var-file`, environment variables (`TF_VAR_`), or `tfvars` files.
+- `output` block: expose values after apply (useful for cross-module data).
+
+6) State management
+- Default local state file `terraform.tfstate` — not for production.
+- Use remote backends: `s3`, `azurerm`, `gcs`, `consul`, or Terraform Cloud.
+- Enable state locking (e.g., DynamoDB for S3 backend) to prevent concurrent writes.
+- Keep state secure — it may contain sensitive data (consider encryption).
+- Avoid manual edits to state unless absolutely necessary; use `terraform state` commands.
+
+7) Backends
+- Configure backend in `backend` block inside `terraform {}`.
+- Backends store state and can provide locking and versioning.
+- Examples: `terraform init -backend-config=...` for env-specific settings.
+
+8) Workspaces
+- Workspaces provide multiple state instances for the same configuration.
+- Useful for simple environment separation (dev/stage/prod) but limited for complex infra.
+- Prefer separate state per account/region for production-grade isolation.
+
+9) Modules
+- Create reusable modules (root module is current directory).
+- Publish modules to the Registry or keep in VCS.
+- Design modules with inputs (`variables`) and outputs; keep them small and composable.
+- Pin module versions using registry source or Git tags/commit SHAs.
+
+10) Meta-arguments & loops
+- `count` — create N instances of a resource.
+- `for_each` — create resources from maps/sets with stable keys.
+- `depends_on` — force explicit dependency when implicit graph isn't enough.
+- `lifecycle` block — `create_before_destroy`, `prevent_destroy`, `ignore_changes`.
+
+11) Dynamic blocks
+- Use `dynamic` for nested repeatable blocks (e.g., security group rules).
+
+12) Provisioners (use sparingly)
+- `local-exec` and `remote-exec` run commands on apply/destroy.
+- Not recommended for long-term provisioning — use cloud-init, configuration management, or CI.
+
+13) Data sources
+- Use `data` to query existing resources not managed by Terraform.
+- Commonly used to look up AMIs, subnets, resource IDs, etc.
+
+14) Resource import & lifecycle management
+- `terraform import` to bring existing resources into state.
+- `terraform state` subcommands to inspect and manipulate state.
+- Use `taint`/`untaint` for forcing recreation (older CLI) — now `-replace` is preferred.
+
+15) Work with multiple accounts/regions
+- Use provider aliases and pass providers into modules when required.
+- Keep credentials and region configs separate via provider configuration and variables.
+
+16) Terraform Cloud / Enterprise features
+- Remote runs, remote state, VCS triggers, run tasks, private module registry.
+- Policy as Code with Sentinel or Open Policy Agent (OPA) integrations.
+
+17) Testing & validation
+- `terraform validate` for static checks.
+- `terraform plan` review as guardrail.
+- Unit/Module tests: Terratest (Go), Kitchen-Terraform (Ruby), or local validation scripts.
+- Use `fmt` and `tflint` for linting.
+
+18) CI/CD integration
+- Run `terraform init` and `terraform plan` in CI, require human approval for apply.
+- Store state remotely and securely; ensure CI has least-privilege access.
+- Use pull requests to review infrastructure changes.
+
+19) Security best practices
+- Do not store secrets in plaintext in configs or tfstate; use key vaults, KMS, or secrets managers.
+- Use `sensitive = true` for outputs/variables that contain secrets.
+- Limit provider credentials to least privilege.
+
+20) Advanced: Expressions, functions, and complex types
+- Use built-in functions: `lookup`, `merge`, `concat`, `flatten`, `jsonencode`, `file()`.
+- Work with maps and objects for structured module inputs.
+- Use `templatefile()` for complex templating needs.
+
+21) Advanced: Large-scale patterns
+- Use remote state per team/component; compose with `terraform_remote_state` (data source) cautiously.
+- Adopt layered approach: network, identity, platform, applications.
+- Use modules for common patterns; manage module versions strictly.
+- Use automation to apply changes during maintenance windows.
+
+22) Advanced: Performance & reliability
+- Break configuration into smaller modules to reduce plan/apply time.
+- Reduce provider API calls by narrowing data sources and using caching where supported.
+- Monitor provider rate limits and add retries/backoff in automation.
+
+23) Upgrade and compatibility
+- Read upgrade guides for major Terraform versions (e.g., 0.11→0.12, 0.12→0.13+ changes).
+- Use `terraform 0.13upgrade` helpers if needed, and test in a sandbox.
+
+24) Common pitfalls
+- Committing `terraform.tfstate` to VCS — avoid this.
+- Relying solely on workspaces for env isolation in complex setups.
+- Manual edits to state without backups.
+- Implicit dependencies misunderstandings causing recreate/destroy surprises.
+
+25) Useful CLI tips
+- `terraform show -json plan.tfplan | jq .` to inspect plan programmatically.
+- `terraform providers` to see provider dependency graph.
+- `terraform graph | dot -Tpng > graph.png` to visualize resource graph.
+
+26) Recommended workflow for teams
+- Keep small, focused modules in a private registry or VCS.
+- Enforce linting and validation in CI: `terraform fmt`, `tflint`, `terraform validate`.
+- Use PR reviews and run `plan` as part of CI with human approval gates for `apply`.
+
+27) Integrations
+- Use remote-exec sparingly; prefer configuration management or immutable images.
+- Integrate with Vault/KMS for secrets; with monitoring/logging for observability.
+
+28) Migration strategies
+- Recreate vs import: import existing resources carefully and then refactor configs.
+- Incremental migration: manage new resources via Terraform while leaving legacy systems unchanged until cutover.
+
+29) Resources for learning
+- Official docs: https://www.terraform.io/docs
+- Terraform Registry: https://registry.terraform.io
+- Community modules and examples on GitHub
+
+---
+
+Interview Questions — Terraform
+------------------------------
+
+Beginner
+- What is Terraform and how does it differ from a configuration management tool?
+- Explain `terraform init`, `plan`, `apply`, and `destroy`.
+- How do variables and outputs work in Terraform?
+- What is a provider in Terraform?
+
+Intermediate
+- Describe how Terraform state works and why remote backends are used.
+- How do you manage secrets in Terraform?
+- Explain `count` vs `for_each` and when to use each.
+- How would you import an existing cloud resource into Terraform management?
+- What are modules and how do you version/publish them?
+
+Advanced
+- How do you design Terraform for a large multi-team organization?
+- Describe strategies for handling multiple environments (dev/stage/prod).
+- Explain the implications of `ignore_changes` in the lifecycle block.
+- How would you handle secret rotation for resources managed by Terraform?
+- Discuss pros/cons of using `terraform_remote_state` to share data between configurations.
+- How do you avoid race conditions and ensure safe concurrent runs?
+
+Scenario / Practical
+- Given an existing VPC and subnets managed outside Terraform, how would you reference them?
+- You ran `terraform apply` and it plans to destroy a resource unexpectedly — how do you investigate and fix?
+- How would you migrate state from local to an S3 backend with locking enabled?
+
+Hands-on challenge ideas for interviews
+- Write a module that provisions an autoscaling group with health checks and outputs the load balancer DNS.
+- Create a Terraform configuration that deploys a simple web app across two availability zones and stores state remotely.
+
+Good luck — keep practicing and always run plans before applies.
+
+Senior (4+ years) — Interview Questions with Answers
+--------------------------------------------------
+
+- Q: How does Terraform maintain state and what are best practices for state storage?
+	A: Terraform stores a JSON state file representing resource metadata. Best practices: use a remote backend (S3/Azure GCS/Terraform Cloud) with locking (DynamoDB for S3), enable encryption at rest, restrict access via IAM, enable versioning for recovery, avoid storing secrets in state by referencing secrets managers, and automate periodic backups.
+
+- Q: Explain state locking and why it's important.
+	A: Locking prevents concurrent writes to state which can corrupt it. Supported via backends (DynamoDB for S3, Cloud Storage locks, Terraform Cloud remote state). Always enable locking for team workflows.
+
+- Q: How do you split Terraform state for a large organization?
+	A: Split by lifecycle boundaries: network, identity, platform, and application. Use separate state per account/region/component, and expose only necessary outputs via remote state data sources or module outputs. Prefer orchestrated composition rather than monolithic states.
+
+- Q: Workspaces vs multiple state files — which to use?
+ A: Workspaces are lightweight state instances for the same configuration; they are NOT full environment isolation for complex infra. For production, prefer separate state backends/repos per environment/accounts.
+
+- Q: How do you safely refactor resources across states?
+	A: Use `terraform import` to map existing resources into the new state, then update configs. When moving between states, use `terraform state mv` with remote state access (or use targeted `import` into new state), and ensure backups before changes.
+
+- Q: Explain `count` vs `for_each` in depth and key migration considerations.
+	A: `count` creates resources indexed by integer; changing list order may cause resource replacement. `for_each` uses stable keys (string/map) allowing safer incremental changes; prefer `for_each` for collections where you need stable identity. Migrating: convert to maps with explicit keys to avoid re-creation.
+
+- Q: How do you handle secret management in Terraform for long-lived and short-lived secrets?
+	A: Do not hardcode secrets. Use Vault, AWS Secrets Manager, Azure Key Vault, or GCP Secret Manager; fetch secrets via data sources or external secret tooling (e.g., SOPS, library). Mark variables/outputs `sensitive = true`. For short-lived creds, use dynamic credentials (IAM roles, OIDC) and avoid storing in state.
+
+- Q: What is drift and how do you detect and remediate it?
+	A: Drift is when real-world resource state deviates from Terraform state. Detect via `terraform plan` or external drift detection tools. Remediation: plan and apply changes to reconcile, or adopt provider-native reconciliation if appropriate. For critical drift, investigate provider logs and consider `terraform import` to reattach resources.
+
+- Q: When is `-target` useful and why avoid overusing it?
+	A: `-target` forces Terraform to operate on specific resources — useful for emergency or migration tasks. Avoid in regular workflows because it bypasses full dependency graph and can leave state inconsistent.
+
+- Q: How do you design modules for reusability and safety?
+	A: Keep modules focused and small, design clear variable inputs and outputs, validate inputs with `type` and `validation` blocks, avoid side effects, write examples and tests, pin module versions, and provide sensible defaults. Keep providers delegated to root module where appropriate.
+
+- Q: Best practices for module versioning and publishing?
+	A: Use semantic versioning, tag releases in VCS, publish to private registry or Terraform Registry, pin module versions in consumers (e.g., `?ref=v1.2.0`), and maintain CHANGELOG and migration notes.
+
+- Q: How do you manage provider versions and upgrades safely?
+	A: Pin provider versions in the `required_providers` block. Test upgrades in isolated environments, read provider changelogs for breaking changes, run `terraform init -upgrade` in a sandbox, and use CI + plan review before applying provider upgrades to production.
+
+- Q: What are common causes of unexpected resource replacement and how to prevent them?
+	A: Causes: changing immutable resource attributes, provider upgrades, type changes (list↔map), computed IDs, or address changes due to refactoring. Prevent: use `lifecycle` settings (`ignore_changes` limited use), validate changes via `plan`, convert to stable identifiers, and use `create_before_destroy` when safe.
+
+- Q: Explain `terraform import` caveats and typical workflow.
+	A: `terraform import` maps existing resources into state but doesn't generate the resource block in config. Workflow: write the resource block matching the resource attributes, run `terraform import` to attach state, then `terraform plan` to reconcile differences and update config as needed. Always backup state first.
+
+- Q: How to handle multi-provider and multi-cloud setups?
+	A: Use provider aliases, define multiple provider blocks, pass providers to modules explicitly, isolate accounts via separate states, centralize common networking modules, and standardize naming/tagging across clouds. Consider abstraction at module level to handle provider-specific differences.
+
+- Q: Describe strategies for minimizing plan/apply time in large repos.
+	A: Split into smaller modules/states, avoid expensive data sources on every run, use targeted runs sparingly, cache data where possible, parallelize CI jobs by state/module, and optimize provider configurations (e.g., narrow query filters).
+
+- Q: What is Terraform Cloud/Enterprise and when to use it?
+	A: Hosted service providing remote runs, state storage, team access controls, policy enforcement (Sentinel), VCS integration, private module registry, and run governance. Use when you need centralized run execution, RBAC, and policy controls for teams.
+
+- Q: How do you implement policy as code for Terraform?
+	A: Use Sentinel (Terraform Enterprise) or OPA/Gatekeeper for policy checks. Implement policies to enforce tagging, approved instance sizes, restrict public access, and block secrets in plaintext. Integrate policies into CI or pre-apply run stages.
+
+- Q: What testing strategies do you use for Terraform modules and stacks?
+	A: Unit-level checks using `terraform validate` and `tflint`; integration tests with Terratest (Go) or Kitchen-Terraform; acceptance tests in ephemeral environments; contract testing for module inputs/outputs; and plan-based checks in CI requiring human review for production applies.
+
+- Q: How do you approach state recovery after accidental corruption?
+	A: Immediately take a backup of current state file, use backend versioning to restore a previous state, inspect corrupt state with `terraform state` commands, and if needed reconstruct state using `terraform import`. Test recovery in a non-production environment first.
+
+- Q: How do you use `terraform plan -out` securely in automation?
+	A: Generate plan with `-out` in CI, store plan artifact in secure storage, require approval step to run `terraform apply` with the plan file. Ensure plan file is access-controlled, and avoid embedding secrets in plan outputs.
+
+- Q: How to handle resource drift caused by out-of-band changes?
+	A: Detect via `plan` and monitoring, create guardrails (IAM policies to limit manual changes), use Infrastructure Owner processes, and optionally integrate drift detection tools for alerts. For remediation, apply plan to reconcile or import the external change if desired.
+
+- Q: Describe a safe blue/green or canary deployment pattern with Terraform.
+	A: Use immutable infrastructure patterns: create new infrastructure (green), switch traffic via load balancer or DNS, perform verification, then destroy old (blue). Manage both states carefully, or use a single state that models both versions with separate resource sets.
+
+- Q: How do you handle secrets rotation in resources managed by Terraform?
+	A: Use external secrets managers with automatic rotation (Vault, Secrets Manager). Avoid storing rotated secrets in state; reference secrets at runtime or trigger rolling updates on rotation via external orchestration. For dynamic secrets (e.g., DB creds), integrate with provider APIs or use external tooling to update resources and then refresh state.
+
+- Q: Explain `ignore_changes` risks and correct use cases.
+	A: `ignore_changes` prevents Terraform from reconciling certain attributes; useful for attributes modified out-of-band (e.g., autoscaling desired_count). Risks: it hides drift and may cause config/state to diverge. Use sparingly and document rationale.
+
+- Q: What's your approach to managing provider credentials securely for CI/CD?
+	A: Use short-lived credentials (OIDC, IAM roles), store long-lived secrets in secure vaults, provide least-privilege roles to CI runners, avoid embedding secrets in repo, and use environment variables or secret managers with fine-grained access.
+
+- Q: How do you evaluate and remediate provider or module security vulnerabilities?
+	A: Monitor advisories, use vulnerability scanners, pin module/provider versions, test upgrades in staging, run `terraform plan`/`apply` in controlled environments, and replace vulnerable modules or update versions with fixes.
+
+- Q: When would you write a custom provider or contribute to one?
+	A: When the platform has no official provider and you need programmatic access via Terraform. Contribute when missing features are needed or for bug fixes. Ensure tests, documentation, and maintainability.
+
+- Q: How do you design for multi-tenancy and RBAC with Terraform-managed infra?
+	A: Separate state per tenant, restrict access via IAM/RBAC, use modules to enforce boundaries, apply tagging and naming policies, and use policy-as-code to enforce resource ownership rules.
+
+- Q: Explain GitOps patterns for Terraform.
+	A: Keep Terraform configs in VCS, trigger remote runs from PR merges, use automation to plan on PR and apply on merge, enforce approvals for production branches. Tools: Atlantis, Terraform Cloud VCS, Flux with controllers that manage Terraform runs.
+
+- Q: How to handle large state files and improve performance?
+	A: Split state, remove unmanaged historical resources, use partial state files, use state storage with good latencies, and reduce provider-side data queries. Consider trimming large computed attributes or storing them externally.
+
+- Q: What metrics or telemetry would you collect for Terraform-driven infra changes?
+	A: Plan/apply durations, frequency of changes, failed runs, drift incidents, number of resources changed per run, cost impact estimates, and policy violations. Use these in dashboards to monitor infra health and delivery velocity.
+
+- Q: Typical troubleshooting steps when a plan shows an unexpected destroy
+	A: Inspect `terraform plan` diff to see attributes causing replace, check provider changelog for breaking changes, view state for resource IDs (`terraform state show`), check recent commits for refactors, and consider `terraform import` or `-replace` if intentional.
+
+- Q: How do you ensure repeatability and immutability in infra deployments?
+	A: Use immutable images (golden AMIs/container images), versioned modules, pinned provider versions, CI-driven artifact builds, and avoid in-place configuration changes that mutate instances.
+
+- Q: How do you handle cross-team dependency between Terraform stacks?
+	A: Expose minimal outputs from one stack and consume via `terraform_remote_state` or a shared data layer (e.g., Service Catalog). Maintain contracts (stable outputs), version remote-state access, and coordinate change windows for breaking changes.
+
+- Q: Advanced: How do you manage ephemeral environments for feature branches?
+	A: Automate environment creation in CI/CD using parameterized Terraform stacks, create isolated state per branch, use short TTLs for environments, and clean up on merge/close with automated destroy jobs.
+
+- Q: Give an example of a tricky real-world Terraform incident you've handled and the resolution.
+	A: (Candidate should describe a specific incident: state corruption/accidental `apply` in prod, how they restored from backend versioning, used `terraform import` to reattach resources, added locking and tighter RBAC, then updated CI to include plan approvals.)
+
+---
+
+More questions to prepare (short prompts)
+- How does Terraform compute the dependency graph?
+- Explain provider aliasing with an example.
+- How to use `external` data source for integration with scripts?
+- What is the `data.terraform_remote_state` pattern and its alternatives?
+- How do you keep secrets out of `terraform.tfstate`?
+- When to use `create_before_destroy` vs `prevent_destroy`?
+- How do you migrate from one backend to another with zero downtime?
+- Explain the role of `required_version` and `required_providers` in `terraform` block.
+- How to structure a monorepo for multiple Terraform stacks?
+- How do you test and validate provider-driven changes before production rollout?
+
+---
+
+This section covers common senior-level topics and concise answers; tailor examples to your cloud provider and past projects during interviews.
+
+
