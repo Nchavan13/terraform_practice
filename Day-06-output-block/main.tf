@@ -1,10 +1,22 @@
-resource "aws_instance" "name" {
+resource "aws_instance" "web" {
   ami               = var.ami_id
   instance_type     = var.instance_type
   key_name          = var.key_name
   availability_zone = "ap-south-1a"
   tags = {
-    Name = "MyInstance"
+    Name = "server-instance"
+    env  = "qa"
+    team = "devops"
+  }
+}
+
+resource "aws_instance" "app" {
+  ami               = var.ami_id
+  instance_type     = var.instance_type
+  key_name          = var.key_name
+  availability_zone = "ap-south-1a"
+  tags = {
+    Name = "server-instance"
     env  = "qa"
     team = "devops"
   }
